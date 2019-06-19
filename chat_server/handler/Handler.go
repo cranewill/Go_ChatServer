@@ -1,4 +1,4 @@
-package manager
+package handler
 
 import (
 	// "fmt"
@@ -6,7 +6,7 @@ import (
 )
 
 type Handler interface {
-	Deal(msg map[string]interface{})
+	Deal(msg []byte)
 }
 
 // func Deal(msg map[string]interface{}) {

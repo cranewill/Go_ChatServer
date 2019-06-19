@@ -7,15 +7,15 @@ import (
 )
 
 type ManagerPool struct {
-	Handlers map[string]Handler
+	ChatManager ChatManager
 }
 
 var Pool ManagerPool
 
-// Init assigns all the entries of messages and handlers
-func (managerPool *ManagerPool)Init() {
+// Init registers all the managers
+func (pool *ManagerPool)Init() {
 	fmt.Println("Init ManagerPool ...")
-	
-	*managerPool.Handlers = map[string]Handler{}
-	*managerPool.Handlers["create"] = chat.CreateHandler{}
+
+	// manager register
+	pool.ChatManager = ChatManager{ChatRooms:map[int64]chat.ChatRoom{}}
 }

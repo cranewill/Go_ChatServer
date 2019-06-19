@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"net"
 	"encoding/json"
-
-	manager "chat_server/manager"
 )
 
 // NetListen starts the socket server and deals messages
 func NetListen() {
-	server, err := net.Listen("tcp", ":7777")
+	server, err := net.Listen("tcp", ":8888")
 	if err != nil {
 		fmt.Println("Start Server Error: ", err)
 		return
@@ -23,12 +21,12 @@ func NetListen() {
 			fmt.Println("Connect Client Error: ", err)
 			continue
 		}
-		handler(conn)
+		handle(conn)
 	}
 }
 
 // handler deals message accepted from client
-func handler(conn net.Conn) {
+func handle(conn net.Conn) {
 	if conn == nil {
 		fmt.Println("Received NULL Connection")
 		return
@@ -53,5 +51,5 @@ func handler(conn net.Conn) {
 	
 	// find the right handler to deal logic
 	cmd := fmt.Sprintf("%v", msgMap["id"])
-	manager.Pool.Handlers[cmd].Deal(msgMap)
+	Pool.Handlers[cmd].Deal(buf[:len])
 }
