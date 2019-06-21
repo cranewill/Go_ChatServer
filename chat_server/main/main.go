@@ -11,12 +11,10 @@ import (
 func main() {
 	// Init message handlers
 	netServer.Pool.Init()
-	// fmt.Println(netServer.Pool.Handlers["create"] == nil)
 	// Init managers
 	manager.Pool.Init()
-	// fmt.Println(manager.Pool.ChatManager)
 
-	go netServer.NetListen()
+	go netServer.Start()
 
 	for {
 		var input string

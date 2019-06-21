@@ -8,18 +8,18 @@ import (
 	message "chat_server/message"
 )
 
-type CreateRoomHandler struct {
+type EnterRoomHandler struct {
 
 }
 
-func (handler CreateRoomHandler)Deal(msgMap []byte) {
-	msg := message.ReqCreateChatRoomMessage{}
+func (handler EnterRoomHandler)Deal(msgMap []byte) {
+	msg := message.ReqEnterChatRoomMessage{}
 	err := json.Unmarshal(msgMap, &msg)
 	if err != nil {
 		fmt.Println("Decode message error: ", err)
 		return
 	}
-	manager.Pool.ChatManager.CreateChatRoom(msg.PlayerId)
+	manager.Pool.ChatManager.EnterChatRoom(msg.PlayerId, msg.RoomId)
 }
 
 

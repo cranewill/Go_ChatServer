@@ -3,11 +3,15 @@ package netserver
 import (
 	"fmt"
 	"net"
+	// "strconv"
 	"encoding/json"
+
+	connect "chat_server/connect"
+	utils "chat_server/utils"
 )
 
-// NetListen starts the socket server and deals messages
-func NetListen() {
+// Start starts the socket server and deals message receiving and sending
+func Start() {
 	server, err := net.Listen("tcp", ":8888")
 	if err != nil {
 		fmt.Println("Start Server Error: ", err)
@@ -15,13 +19,20 @@ func NetListen() {
 	}
 	fmt.Println("Server Started !")
 
+	// Init connect pool
+	connect.Pool = connect.ConnectPool{map[int64]net.Conn{}}
+
+	// message sending channel
+	utils.SendChan = make(chan utils.MessageSendTask, 20)
+	go utils.Send(utils.SendChan)
+
 	for {
 		conn, err := server.Accept()
 		if err != nil {
 			fmt.Println("Connect Client Error: ", err)
 			continue
 		}
-		handle(conn)
+		go handle(conn)
 	}
 }
 
@@ -36,7 +47,7 @@ func handle(conn net.Conn) {
 	buf := make([]byte, 4096)
 	len, err := conn.Read(buf)
 	if err != nil {
-		fmt.Println("Read Message ERROR: ", err)
+		fmt.Println("Read Message Error: ", err)
 		return
 	}
 	fmt.Printf("Message is %s\n", buf)
@@ -49,7 +60,10 @@ func handle(conn net.Conn) {
 		return
 	}
 	
-	// find the right handler to deal logic
+	// save player's connection and find the right handler to deal logic
 	cmd := fmt.Sprintf("%v", msgMap["id"])
+	playerId := int64(msgMap["playerId"].(float64))
+
+	connect.Pool.SaveConn(playerId, conn)
 	Pool.Handlers[cmd].Deal(buf[:len])
 }

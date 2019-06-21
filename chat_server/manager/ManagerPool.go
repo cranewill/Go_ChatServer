@@ -2,11 +2,12 @@ package manager
 
 import (
 	"fmt"
-
+	
 	chat "chat_server/chat"
 )
 
 type ManagerPool struct {
+	// ConnectManager ConnectManager
 	ChatManager ChatManager
 }
 
@@ -17,5 +18,6 @@ func (pool *ManagerPool)Init() {
 	fmt.Println("Init ManagerPool ...")
 
 	// manager register
+	// pool.ConnectManager = ConnectManager{Conns:map[int64]net.Conn{}}
 	pool.ChatManager = ChatManager{ChatRooms:map[int64]chat.ChatRoom{}}
 }

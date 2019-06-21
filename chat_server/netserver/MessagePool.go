@@ -20,4 +20,5 @@ func (pool *MessagePool)Init() {
 	pool.Handlers = map[string]handler.Handler{}
 	pool.Handlers["create"] = handler.CreateRoomHandler{}
 	pool.Handlers["show"] = handler.ShowRoomsHandler{}
+	pool.Handlers["enter"] = handler.EnterRoomHandler{}
 }
