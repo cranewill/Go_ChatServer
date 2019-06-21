@@ -21,3 +21,8 @@ func (this *ConnectPool) SaveConn (playerId int64, con net.Conn) {
 	this.Conns[playerId] = con
 	fmt.Println("Player ", playerId, " connect!")
 }
+
+// RemoveConn called when client disconnects to remove player tcp connection from Conns
+func (this *ConnectPool) RemoveConn (playerId int64) {
+	delete(this.Conns, playerId)
+}
