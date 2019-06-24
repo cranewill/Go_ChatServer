@@ -1,11 +1,8 @@
 package chat
 
-import (
-
-)
-
+import "container/list"
 
 type ChatRoom struct {
-	Owner int64
-	Members []int64
+	Owner   int64
+	Members *list.List
 }

@@ -3,18 +3,19 @@ package main
 import (
 	"fmt"
 
-	netServer "chat_server/netserver"
-	manager "chat_server/manager"
+	"Go_ChatServer/chat_server/manager"
+	"Go_ChatServer/chat_server/netserver"
 )
 
 // main
 func main() {
 	// Init message handlers
-	netServer.Pool.Init()
+	netserver.Pool.Init()
 	// Init managers
 	manager.Pool.Init()
 
-	go netServer.Start()
+	go netserver.Start()
+	fmt.Println("Server Started !")
 
 	for {
 		var input string

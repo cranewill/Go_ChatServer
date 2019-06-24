@@ -1,11 +1,9 @@
 package message
 
-import (
-
-)
+import ()
 
 type ReqEnterChatRoomMessage struct {
-	Id string
+	Id       string
 	PlayerId int64
-	RoomId int64
+	RoomId   int64
 }

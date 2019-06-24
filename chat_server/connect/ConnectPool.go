@@ -15,7 +15,7 @@ var Pool ConnectPool
 func (this *ConnectPool) SaveConn (playerId int64, con net.Conn) {
 	_, exist := this.Conns[playerId]
 	if (exist) {
-		fmt.Println("Player ", playerId, " connection already saved")
+		//fmt.Println("Player ", playerId, " connection already saved")
 		return
 	}
 	this.Conns[playerId] = con

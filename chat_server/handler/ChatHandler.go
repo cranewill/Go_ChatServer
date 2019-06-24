@@ -21,4 +21,3 @@ func (handler ChatHandler)Deal(msgMap []byte) {
 	}
 	manager.Pool.ChatManager.Chat(msg.PlayerId, msg.Content)
 }
-

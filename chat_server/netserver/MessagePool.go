@@ -3,7 +3,7 @@ package netserver
 import (
 	"fmt"
 
-	handler "chat_server/handler"
+	handler "Go_ChatServer/chat_server/handler"
 )
 
 type MessagePool struct {
@@ -21,4 +21,5 @@ func (pool *MessagePool)Init() {
 	pool.Handlers["create"] = handler.CreateRoomHandler{}
 	pool.Handlers["show"] = handler.ShowRoomsHandler{}
 	pool.Handlers["enter"] = handler.EnterRoomHandler{}
+	pool.Handlers["chat"] = handler.ChatHandler{}
 }

@@ -1,10 +1,8 @@
 package message
 
-import (
-
-)
+import ()
 
 type ReqShowRoomsMessage struct {
-	Id string
+	Id       string
 	PlayerId int64
 }

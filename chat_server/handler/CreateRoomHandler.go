@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"encoding/json"
 
-	manager "chat_server/manager"
-	message "chat_server/message"
+	manager "Go_ChatServer/chat_server/manager"
+	message "Go_ChatServer/chat_server/message"
 )
 
 type CreateRoomHandler struct {

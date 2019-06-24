@@ -3,7 +3,7 @@ package manager
 import (
 	"fmt"
 	
-	chat "chat_server/chat"
+	chat "Go_ChatServer/chat_server/chat"
 )
 
 type ManagerPool struct {
