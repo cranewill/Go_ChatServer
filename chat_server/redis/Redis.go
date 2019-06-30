@@ -1,14 +1,15 @@
 package redis
 
 import (
-	"fmt"
 	"github.com/go-redis/redis"
+	"log"
 	"time"
 )
 
 var Redisdb *redis.Client
 
 func init() {
+	log.Println("Init Redis ...")
 	Redisdb = redis.NewClient(&redis.Options{
 		Addr:         ":6379",
 		DialTimeout:  10 * time.Second,
@@ -17,12 +18,9 @@ func init() {
 		PoolSize:     10,
 		PoolTimeout:  30 * time.Second,
 	})
-	fmt.Println("Redis init!")
 }
 
 // IsNil returns if the result of Redisdb 'Get' operation is Nil
 func IsNil(err error) bool {
 	return err == redis.Nil
 }
-
-

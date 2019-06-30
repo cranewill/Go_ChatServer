@@ -3,6 +3,7 @@ package netserver
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 
 	connect "Go_ChatServer/chat_server/connect"
@@ -13,7 +14,7 @@ import (
 func Start() {
 	server, err := net.Listen("tcp", ":8888")
 	if err != nil {
-		fmt.Println("Server Listen TCP Error: ", err)
+		log.Println("Server Listen TCP Error: ", err)
 		return
 	}
 
@@ -21,15 +22,16 @@ func Start() {
 	connect.Pool = connect.ConnectPool{map[int64]net.Conn{}}
 
 	// message sending channel
-	utils.SendChan = make(chan utils.MessageSendTask, 20)
-	go utils.Send(utils.SendChan)
+	utils.StrSendChan = make(chan utils.MessageSendTask, 20)
+	utils.MsgSendChan = make(chan utils.MessageTask, 20)
+	go utils.Send(utils.StrSendChan)
+	go utils.SendMsg(utils.MsgSendChan)
 
 	for {
 		conn, err := server.Accept()
 		//fmt.Println("server accepts msg!!!!!!!!!!!!!")
-		defer conn.Close()
 		if err != nil {
-			fmt.Println("Connect Client Error: ", err)
+			log.Println("Connect Client Error: ", err)
 			continue
 		}
 		go handle(conn)
@@ -38,8 +40,9 @@ func Start() {
 
 // handle deals message accepted from client
 func handle(conn net.Conn) {
+
 	if conn == nil {
-		fmt.Println("Received NULL Connection")
+		log.Println("Received NULL Connection")
 		return
 	}
 
@@ -48,17 +51,17 @@ func handle(conn net.Conn) {
 		buf := make([]byte, 4096)
 		len, err := conn.Read(buf)
 		if err != nil {
-			fmt.Println("Read Message Error: ", err)
-			// TODO should we remove connect from connectPool here?
+			log.Println("Read Message Error: ", err)
+			connect.Pool.RemoveTheConn(conn)
 			return
 		}
-		fmt.Printf("Message is %s\n", buf)
+		//fmt.Printf("Message is %s\n", buf)
 
 		// create a map to decode msg-json
 		msgMap := make(map[string]interface{})
 		err = json.Unmarshal(buf[:len], &msgMap)
 		if err != nil {
-			fmt.Println("Message Format Error: ", err)
+			log.Println("Message Format Error: ", err)
 			continue
 		}
 
@@ -68,5 +71,6 @@ func handle(conn net.Conn) {
 
 		connect.Pool.SaveConn(playerId, conn)
 		Pool.Handlers[cmd].Deal(buf[:len])
+
 	}
 }

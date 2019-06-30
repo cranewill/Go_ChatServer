@@ -1,89 +1,137 @@
 package main
 
 import (
+	"Go_ChatServer/chat_client/manager"
+	"bufio"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net"
+	"os"
 	"strings"
+	"time"
 )
 
+// messageSend sends the message string 'input' to connection 'c'
 func messageSend(c net.Conn, input string) {
 	if c == nil {
-		fmt.Println("Connection is closed.")
+		log.Println("Connection is closed.")
 		return
 	}
 	if len(input) == 0 {
 		return
 	}
-	input = strings.TrimSpace(input)
 	c.Write([]byte(input))
-	//fmt.Println("send msg: ",input)
+	//log.Println("send msg:", input)
 }
 
+// messageListen is a goroutine always listen message from connection 'c' and deal with it
 func messageListen(c net.Conn) {
 	for {
-		//fmt.Println("Listening...")
+		//log.Println("Listening...")
 
 		buf := make([]byte, 4096)
 		cnt, err := c.Read(buf)
 		if err != nil {
-			fmt.Printf("Fail to read data, %s\n", err)
+			log.Printf("Fail to read data, %s\n", err)
 			return
 		}
-		fmt.Println(string(buf[0:cnt]))
+
+		msgMap := make(map[string]interface{})
+		err = json.Unmarshal(buf[0:cnt], &msgMap)
+		if err != nil {
+			log.Println("Decode message error: ", err)
+			return
+		}
+
+		cmd := fmt.Sprintf("%v", msgMap["Id"])
+		deal(cmd, buf[0:cnt])
+	}
+}
+
+// deal assigns messages to right logic according to their 'id'
+func deal(id string, msg []byte) {
+	switch strings.ToLower(id) {
+	case "rooms":
+		manager.ShowRooms(msg)
+	case "chat":
+		manager.ShowChat(msg)
+	case "enter":
+		manager.EnterResult(msg)
+	case "create":
+		manager.CreateResult(msg)
+	case "quit":
+		manager.QuitResult(msg)
 	}
 }
 
 func main() {
 	conn, err := net.Dial("tcp", "localhost:8888")
 	if err != nil {
-		fmt.Printf("Fail to connect, %s\n", err)
+		log.Printf("Fail to connect, %s\n", err)
 		return
 	}
 	defer conn.Close()
 
 	go messageListen(conn)
 
-	fmt.Println("Input your player ID (int64): ")
+	log.Println("Input your player ID (int64): ")
 	var idStr string
 	fmt.Scanln(&idStr)
-	//playerId, err := strconv.ParseInt(idStr,10,64)
-	//if err != nil {
-	//	fmt.Println("Input error: ", err)
-	//	return
-	//}
-	MAIN:for {
-		fmt.Println("Input your command: ")
+
+	fmt.Println("Hello ", idStr, "! You can use the command below: ")
+	fmt.Println("'show': show all the chat rooms.")
+	fmt.Println("'create': create a chat room.")
+	fmt.Println("'enter': enter a existing chat room.")
+	fmt.Println("'quit': quit a chat room or the client.")
+MAIN:
+	for {
+		time.Sleep(time.Second)
+		log.Println("Input your command: ")
 
 		var input string
 		fmt.Scanln(&input)
-		//if input == "quit" {
-		//	break
-		//}
+
 		var cmd string
-		CMD:switch input {
+	CMD:
+		switch input {
 		case "quit":
-			break MAIN
+			log.Println("Input 'a' to quit the client, and others to quit the chat room: ")
+			var quitType string
+			fmt.Scanln(&quitType)
+			cmd = "{\"id\":\"quit\",\"playerId\":" + idStr + ",\"quitType\":\"" + quitType + "\"}"
+			if quitType == "a" {
+				messageSend(conn, cmd)
+				break MAIN
+			}
+			messageSend(conn, cmd)
 		case "show":
 			cmd = "{\"id\":\"show\",\"playerId\":" + idStr + "}"
+			messageSend(conn, cmd)
 		case "create":
 			cmd = "{\"id\":\"create\",\"playerId\":" + idStr + "}"
+			messageSend(conn, cmd)
 		case "enter":
-			fmt.Println("Input the room ID which you want to enter: ")
+			log.Println("Input the room ID which you want to enter: ")
 			var enterId string
 			fmt.Scanln(&enterId)
 			cmd = "{\"id\":\"enter\",\"playerId\":" + idStr + ",\"roomId\":" + enterId + "}"
+			messageSend(conn, cmd)
 		case "chat":
-			fmt.Println("Input the message('quit' to back to menu): ")
+			log.Println("Input the message('quit' to back to menu): ")
 			for {
 				var msg string
-				fmt.Scanln(&msg)
+				var inputReader *bufio.Reader
+				inputReader = bufio.NewReader(os.Stdin)
+				msg, err = inputReader.ReadString('\n')
+				msg = strings.Replace(msg, "\n", "", -1)
 				if msg == "quit" {
 					break CMD
 				}
 				cmd = "{\"id\":\"chat\",\"playerId\":" + idStr + ",\"content\":\"" + msg + "\"}"
+				fmt.Println("【You】: ", msg, "\n")
 				messageSend(conn, cmd)
 			}
 		}
-		messageSend(conn, cmd)
 	}
 }
