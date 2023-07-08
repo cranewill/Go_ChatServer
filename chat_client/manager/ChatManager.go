@@ -79,7 +79,7 @@ func QuitResult(message []byte) {
 	}
 	switch msg.Result {
 	case 0:
-		log.Println("Quit chat room success !")
+		log.Println("Quit success !")
 	case 1:
 		log.Println("Cannot find the room !")
 	case 2:

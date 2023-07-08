@@ -49,7 +49,7 @@ func handle(conn net.Conn) {
 	for {
 		// create buf to accept message
 		buf := make([]byte, 4096)
-		len, err := conn.Read(buf)
+		length, err := conn.Read(buf)
 		if err != nil {
 			log.Println("Read Message Error: ", err)
 			connect.Pool.RemoveTheConn(conn)
@@ -59,18 +59,18 @@ func handle(conn net.Conn) {
 
 		// create a map to decode msg-json
 		msgMap := make(map[string]interface{})
-		err = json.Unmarshal(buf[:len], &msgMap)
+		err = json.Unmarshal(buf[:length], &msgMap)
 		if err != nil {
 			log.Println("Message Format Error: ", err)
 			continue
 		}
 
 		// save player's connection and find the right handler to deal logic
-		cmd := fmt.Sprintf("%v", msgMap["id"])
-		playerId := int64(msgMap["playerId"].(float64))
+		cmd := fmt.Sprintf("%v", msgMap["Id"])
+		playerId := int64(msgMap["PlayerId"].(float64))
 
 		connect.Pool.SaveConn(playerId, conn)
-		Pool.Handlers[cmd].Deal(buf[:len])
+		Pool.Handlers[cmd].Deal(buf[:length])
 
 	}
 }

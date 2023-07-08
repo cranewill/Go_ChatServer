@@ -140,10 +140,6 @@ func (manager ChatManager) Chat(playerId int64, content string) {
 
 // Quit allows player to quit the chat room, and the same time removes its info from redis
 func (manager *ChatManager) Quit(playerId int64, quitType string) {
-	//if quitType == "a" {
-	//	connect.Pool.RemoveConn(playerId)
-	//}
-
 	message := out.ResQuitResultMessage{Id: "quit", Result: 0}
 
 	roomIdStr, err := redis.Redisdb.Get(strconv.FormatInt(playerId, 10)).Result()
@@ -153,8 +149,14 @@ func (manager *ChatManager) Quit(playerId int64, quitType string) {
 			message.Result = 1
 			utils.Tell(playerId, message)
 			return
-		} else {
-			//log.Println("Player is not in a chat room")
+		} else { // redis.Nil : player is not in any room
+			if quitType == "a" {
+				connect.Pool.RemoveConn(playerId)
+				message.Result = 0
+				utils.Tell(playerId, message)
+				return
+			}
+			log.Println("Player is not in a chat room")
 			message.Result = 2
 			utils.Tell(playerId, message)
 			return

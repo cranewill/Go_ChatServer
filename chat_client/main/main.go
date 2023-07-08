@@ -2,26 +2,29 @@ package main
 
 import (
 	"Go_ChatServer/chat_client/manager"
+	"Go_ChatServer/chat_client/message"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
-	"time"
 )
 
 // messageSend sends the message string 'input' to connection 'c'
-func messageSend(c net.Conn, input string) {
+func messageSend(c net.Conn, msg message.IMessage) {
 	if c == nil {
 		log.Println("Connection is closed.")
 		return
 	}
-	if len(input) == 0 {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Println("Encode message error: ", err)
 		return
 	}
-	c.Write([]byte(input))
+	c.Write(data)
 	//log.Println("send msg:", input)
 }
 
@@ -68,55 +71,78 @@ func deal(id string, msg []byte) {
 func main() {
 	conn, err := net.Dial("tcp", "localhost:8888")
 	if err != nil {
-		log.Printf("Fail to connect, %s\n", err)
+		panic("Fail to connect: " + err.Error())
 		return
 	}
 	defer conn.Close()
 
 	go messageListen(conn)
 
-	log.Println("Input your player ID (int64): ")
+	fmt.Println("Input your player ID (int64): ")
 	var idStr string
-	fmt.Scanln(&idStr)
+	_, _ = fmt.Scanln(&idStr)
 
-	fmt.Println("Hello ", idStr, "! You can use the command below: ")
-	fmt.Println("'show': show all the chat rooms.")
-	fmt.Println("'create': create a chat room.")
-	fmt.Println("'enter': enter a existing chat room.")
-	fmt.Println("'quit': quit a chat room or the client.")
-MAIN:
+	playerId, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		log.Println("Invalid player ID: ", err)
+	}
+
+	fmt.Println(fmt.Sprintf(`Hello %s! You can use the command below: 
+'show': show all the chat rooms.
+'create': create a chat room.
+'enter': enter a existing chat room.
+'quit': quit a chat room or the client.`, idStr))
+
+	var quitProcess bool
 	for {
-		time.Sleep(time.Second)
+		if quitProcess {
+			break
+		}
 		log.Println("Input your command: ")
 
 		var input string
-		fmt.Scanln(&input)
+		_, _ = fmt.Scanln(&input)
 
 		var cmd string
-	CMD:
 		switch input {
 		case "quit":
 			log.Println("Input 'a' to quit the client, and others to quit the chat room: ")
 			var quitType string
-			fmt.Scanln(&quitType)
-			cmd = "{\"id\":\"quit\",\"playerId\":" + idStr + ",\"quitType\":\"" + quitType + "\"}"
+			_, _ = fmt.Scanln(&quitType)
 			if quitType == "a" {
-				messageSend(conn, cmd)
-				break MAIN
+				messageSend(conn, message.ReqQuitMessage{
+					Id:       "quit",
+					PlayerId: playerId,
+					QuitType: quitType,
+				})
+				quitProcess = true
+				break
 			}
 			messageSend(conn, cmd)
 		case "show":
-			cmd = "{\"id\":\"show\",\"playerId\":" + idStr + "}"
-			messageSend(conn, cmd)
+			messageSend(conn, message.ReqShowRoomsMessage{
+				Id:       "show",
+				PlayerId: playerId,
+			})
 		case "create":
-			cmd = "{\"id\":\"create\",\"playerId\":" + idStr + "}"
-			messageSend(conn, cmd)
+			messageSend(conn, message.ReqCreateChatRoomMessage{
+				Id:       "create",
+				PlayerId: playerId,
+			})
 		case "enter":
 			log.Println("Input the room ID which you want to enter: ")
 			var enterId string
-			fmt.Scanln(&enterId)
-			cmd = "{\"id\":\"enter\",\"playerId\":" + idStr + ",\"roomId\":" + enterId + "}"
-			messageSend(conn, cmd)
+			_, _ = fmt.Scanln(&enterId)
+			roomId, err := strconv.ParseInt(enterId, 10, 64)
+			if err != nil {
+				log.Println("Invalid room ID: ", err)
+				break
+			}
+			messageSend(conn, message.ReqEnterChatRoomMessage{
+				Id:       "enter",
+				PlayerId: playerId,
+				RoomId:   roomId,
+			})
 		case "chat":
 			log.Println("Input the message('quit' to back to menu): ")
 			for {
@@ -126,11 +152,14 @@ MAIN:
 				msg, err = inputReader.ReadString('\n')
 				msg = strings.Replace(msg, "\n", "", -1)
 				if msg == "quit" {
-					break CMD
+					break
 				}
-				cmd = "{\"id\":\"chat\",\"playerId\":" + idStr + ",\"content\":\"" + msg + "\"}"
 				fmt.Println("【You】: ", msg, "\n")
-				messageSend(conn, cmd)
+				messageSend(conn, message.ReqChatMessage{
+					Id:       "enter",
+					PlayerId: playerId,
+					Content:  msg,
+				})
 			}
 		}
 	}
