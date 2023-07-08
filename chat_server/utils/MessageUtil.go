@@ -1,43 +1,44 @@
 package utils
 
 import (
-	"Go_ChatServer/chat_server/messageout"
+	"Go_ChatServer/chat_common/message"
 	"encoding/json"
 	"log"
 
 	connect "Go_ChatServer/chat_server/connect"
 )
 
-type MessageSendTask struct {
-	Target int64
+type MessageRawTask struct {
+	Target string
 	Msg    string
 }
 
 type MessageTask struct {
-	Target int64
-	Msg    messageout.Message
+	Target string
+	Msg    message.IMessage
 }
 
-var StrSendChan chan MessageSendTask
+var StrSendChan chan MessageRawTask
 var MsgSendChan chan MessageTask
 
 // Tell executes STRING message sending to specific player
-func TellPlayer(playerId int64, msg string) {
-	StrSendChan <- MessageSendTask{Target: playerId, Msg: msg}
+func TellRaw(playerId string, msg string) {
+	StrSendChan <- MessageRawTask{Target: playerId, Msg: msg}
 }
 
 // Send is a goroutine fetching messages from StrSendChan to send to player
-func Send(SendChan chan MessageSendTask) {
+func Send(SendChan chan MessageRawTask) {
 	for {
 		sendTask := <-SendChan
 		log.Printf("send message task: %v\n", sendTask)
-		con, exist := connect.Pool.Conns[sendTask.Target]
+
+		target, exist := connect.Pool.GetPlayer(sendTask.Target)
 		if !exist {
 			log.Println("Cannot find player connection: ", sendTask.Target)
 			return
 		}
 
-		_, err := con.Write([]byte(sendTask.Msg))
+		_, err := (*target.Conn).Write([]byte(sendTask.Msg))
 		if err != nil {
 			log.Println("Send message failed: ", err)
 		}
@@ -45,30 +46,35 @@ func Send(SendChan chan MessageSendTask) {
 }
 
 // Tell sends Message type message to channel
-func Tell(playerId int64, message messageout.Message) {
+func Tell(playerId string, message message.IMessage) {
 	MsgSendChan <- MessageTask{playerId, message}
 }
 
 // SendMsg is a goroutine worked with Tell() to fetch MessageTasks from MsgSendChan and send them to players
 func SendMsg(msgChan chan MessageTask) {
 	for {
-		message := <-msgChan
-		con, exist := connect.Pool.Conns[message.Target]
+		msgData := <-msgChan
+		target, exist := connect.Pool.GetPlayer(msgData.Target)
 		if !exist {
-			log.Println("Cannot find player connection: ", message.Target)
+			log.Println("Cannot find player connection: ", msgData.Target)
 			return
 		}
-
-		msg, err := json.Marshal(message.Msg)
+		netMsg := message.NetMessage{}
+		msg, err := json.Marshal(msgData.Msg)
 		if err != nil {
 			log.Println("Json encode message failed: ", err)
 			return
 		}
-		//log.Printf("Send message %s\n", msg)
-		_, err = con.Write(msg)
+		netMsg.MsgName = msgData.Msg.MsgName()
+		netMsg.Data = string(msg)
+		data, err := json.Marshal(netMsg)
+		if err != nil {
+			log.Println("Encode net message error: ", err)
+			return
+		}
+		_, err = (*target.Conn).Write(data)
 		if err != nil {
 			log.Println("Send message failed: ", err)
 		}
-
 	}
 }

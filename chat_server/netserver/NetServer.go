@@ -1,10 +1,12 @@
 package netserver
 
 import (
+	"Go_ChatServer/chat_common/message"
+	"Go_ChatServer/chat_server/models"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
+	"sync"
 
 	connect "Go_ChatServer/chat_server/connect"
 	"Go_ChatServer/chat_server/utils"
@@ -19,29 +21,28 @@ func Start() {
 	}
 
 	// Init connect pool
-	connect.Pool = connect.ConnectPool{map[int64]net.Conn{}}
+	connect.Pool = connect.PlayerPool{
+		Players: new(sync.Map),
+	}
 
 	// message sending channel
-	utils.StrSendChan = make(chan utils.MessageSendTask, 20)
 	utils.MsgSendChan = make(chan utils.MessageTask, 20)
-	go utils.Send(utils.StrSendChan)
 	go utils.SendMsg(utils.MsgSendChan)
 
 	for {
 		conn, err := server.Accept()
-		//fmt.Println("server accepts msg!!!!!!!!!!!!!")
 		if err != nil {
 			log.Println("Connect Client Error: ", err)
 			continue
 		}
-		go handle(conn)
+		player := models.NewPlayer("", &conn)
+		go handle(player)
 	}
 }
 
 // handle deals message accepted from client
-func handle(conn net.Conn) {
-
-	if conn == nil {
+func handle(player *models.Player) {
+	if player == nil || player.Conn == nil {
 		log.Println("Received NULL Connection")
 		return
 	}
@@ -49,28 +50,48 @@ func handle(conn net.Conn) {
 	for {
 		// create buf to accept message
 		buf := make([]byte, 4096)
-		length, err := conn.Read(buf)
+		length, err := (*player.Conn).Read(buf)
 		if err != nil {
 			log.Println("Read Message Error: ", err)
-			connect.Pool.RemoveTheConn(conn)
+			connect.Pool.RemovePlayer(player)
 			return
 		}
-		//fmt.Printf("Message is %s\n", buf)
 
 		// create a map to decode msg-json
-		msgMap := make(map[string]interface{})
-		err = json.Unmarshal(buf[:length], &msgMap)
+		netMsg := message.NetMessage{}
+		err = json.Unmarshal(buf[:length], &netMsg)
 		if err != nil {
-			log.Println("Message Format Error: ", err)
+			log.Println("Net Message Format Error: ", err)
 			continue
 		}
+		msgName := netMsg.MsgName
+		// the first message must be "ReqAuthMessage"
+		if player.Id == "" && msgName != "ReqAuthMessage" {
+			log.Println("Message Illegal: ", msgName)
+			return
+		}
 
-		// save player's connection and find the right handler to deal logic
-		cmd := fmt.Sprintf("%v", msgMap["Id"])
-		playerId := int64(msgMap["PlayerId"].(float64))
-
-		connect.Pool.SaveConn(playerId, conn)
-		Pool.Handlers[cmd].Deal(buf[:length])
-
+		//switch msgName {
+		//case "ReqAuthMessage":
+		//	if player.Id != "" {
+		//		log.Println("Repeat Auth")
+		//		break
+		//	}
+		//	msgBody := message.ReqAuthMessage{}
+		//	err = json.Unmarshal([]byte(netMsg.Data), &msgBody)
+		//	if err != nil {
+		//		log.Println("Message Body Format Error: ", err)
+		//		continue
+		//	}
+		//	player.Id = msgBody.PlayerId
+		//	connect.Pool.SavePlayer(player)
+		//default:
+		msgHandler, ok := Pool.Handlers[msgName]
+		if !ok {
+			log.Println("Cannot find handler for command: ", msgName)
+			continue
+		}
+		msgHandler.Handle(player, []byte(netMsg.Data))
+		//}
 	}
 }

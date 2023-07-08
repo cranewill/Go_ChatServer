@@ -1,16 +1,7 @@
 package handler
 
-import (
-	// "fmt"
-
-)
+import "Go_ChatServer/chat_server/models"
 
 type Handler interface {
-	Deal(msg []byte)
+	Handle(player *models.Player, msg []byte)
 }
-
-// func Deal(msg map[string]interface{}) {
-// 	fmt.Println("deal", msg)
-// }
-
-

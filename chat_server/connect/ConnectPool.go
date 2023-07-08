@@ -1,39 +1,34 @@
 package manager
 
 import (
+	"Go_ChatServer/chat_server/models"
 	"log"
-	"net"
+	"sync"
 )
 
-type ConnectPool struct {
-	Conns map[int64]net.Conn
+type PlayerPool struct {
+	Players *sync.Map
 }
 
-var Pool ConnectPool
+var Pool PlayerPool
+
+// GetConn returns the connection by playerId
+func (this *PlayerPool) GetPlayer(playerId string) (*models.Player, bool) {
+	conn, ok := this.Players.Load(playerId)
+	if !ok {
+		return nil, false
+	}
+	return conn.(*models.Player), ok
+}
 
 // SaveConn saves a player tcp connection in Conns
-func (this *ConnectPool) SaveConn(playerId int64, con net.Conn) {
-	_, exist := this.Conns[playerId]
-	if exist {
-		//fmt.Println("Player ", playerId, " connection already saved")
-		return
-	}
-	this.Conns[playerId] = con
-	log.Println("Player ", playerId, " connects!")
+func (this *PlayerPool) SavePlayer(player *models.Player) {
+	this.Players.Store(player.Id, player)
+	log.Println("Player ", player.Id, " connects!")
 }
 
 // RemoveConn called when client disconnects to remove player tcp connection from Conns
-func (this *ConnectPool) RemoveConn(playerId int64) {
-	delete(this.Conns, playerId)
-	log.Println("Player ", playerId, " disconnects!")
-}
-
-// RemoveTheConn execute player connection delete by giving the connection
-func (this *ConnectPool) RemoveTheConn(con net.Conn) {
-	for playerId, conn := range this.Conns {
-		if conn == con {
-			delete(this.Conns, playerId)
-			log.Println("Player ", playerId, " disconnects!")
-		}
-	}
+func (this *PlayerPool) RemovePlayer(player *models.Player) {
+	this.Players.Delete(player.Id)
+	log.Println("Player ", player.Id, " disconnects!")
 }

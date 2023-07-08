@@ -17,13 +17,10 @@ func (pool *MessagePool) Init() {
 
 	// message register
 	pool.Handlers = map[string]handler.Handler{}
-	pool.Handlers["create"] = handler.CreateRoomHandler{}
-	pool.Handlers["show"] = handler.ShowRoomsHandler{}
-	pool.Handlers["enter"] = handler.EnterRoomHandler{}
-	pool.Handlers["chat"] = handler.ChatHandler{}
-	pool.Handlers["quit"] = handler.QuitHandler{}
-}
-
-func CallBack(msg []byte, f func([]byte)) {
-	f(msg)
+	pool.Handlers["ReqAuthMessage"] = handler.AuthHandler{}
+	pool.Handlers["ReqCreateChatRoomMessage"] = handler.CreateRoomHandler{}
+	pool.Handlers["ReqShowRoomsMessage"] = handler.ShowRoomsHandler{}
+	pool.Handlers["ReqEnterChatRoomMessage"] = handler.EnterRoomHandler{}
+	pool.Handlers["ReqChatMessage"] = handler.ChatHandler{}
+	pool.Handlers["ReqQuitMessage"] = handler.QuitHandler{}
 }
